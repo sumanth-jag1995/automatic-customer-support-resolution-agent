@@ -6,7 +6,7 @@ app = FastAPI(title="Support Resolution Agent")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # dev/demo only — set ALLOWED_ORIGINS env var for production
     allow_methods=["*"],
     allow_headers=["*"],
 )
