@@ -9,6 +9,7 @@ from app.schemas.ticket import TicketCreate, TicketOut, ResolveRequest
 from app.schemas.agent import ResolveOut
 from app.agents.graph import agent_graph
 from app.agents.state import AgentState
+from app.agents.openrouter import list_models
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -48,6 +49,16 @@ async def resolve_ticket(
             raise HTTPException(404, "Ticket not found")
 
         logger.info(f"[RESOLVE] Ticket found: {ticket.subject}")
+
+        # Validate OpenRouter API key before proceeding
+        logger.info("[RESOLVE] Validating OpenRouter API key...")
+        try:
+            await list_models(payload.openrouter_key)
+            logger.info("[RESOLVE] API key validation successful")
+        except Exception as e:
+            logger.error(f"[RESOLVE] API key validation failed: {str(e)}")
+            raise HTTPException(401, f"Invalid OpenRouter API key: {str(e)}")
+
         ticket.status = "in_progress"
         db.commit()
 
