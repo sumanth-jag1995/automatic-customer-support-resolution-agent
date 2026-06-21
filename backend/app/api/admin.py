@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 from app.database import SessionLocal
@@ -5,6 +6,7 @@ from app.models.crm import Customer, Order, Account
 from app.models.kb import KBArticle
 from app.rag.embeddings import embed
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/seed")
@@ -12,7 +14,8 @@ def seed_database():
     """One-time endpoint to populate database with sample data."""
     db = SessionLocal()
     try:
-        # Step 1: Insert customers
+        logger.info("Starting database seed...")
+        logger.info("Step 1: Inserting customers...")
         customers = [
             Customer(id="cust_1", name="Alice Chen", email="alice@example.com", plan="pro", status="active"),
             Customer(id="cust_2", name="Bob Smith", email="bob@example.com", plan="free", status="active"),
@@ -21,8 +24,9 @@ def seed_database():
         for c in customers:
             db.merge(c)
         db.commit()
+        logger.info("✓ Customers inserted")
 
-        # Step 2: Insert orders
+        logger.info("Step 2: Inserting orders...")
         orders = [
             Order(id="ord_1", customer_id="cust_1", product="Pro Plan", amount=99.0, status="completed"),
             Order(id="ord_2", customer_id="cust_2", product="Add-on Pack", amount=19.0, status="completed"),
@@ -31,14 +35,16 @@ def seed_database():
         for o in orders:
             db.merge(o)
         db.commit()
+        logger.info("✓ Orders inserted")
 
-        # Step 3: Insert accounts
+        logger.info("Step 3: Inserting accounts...")
         accounts = [Account(customer_id=c.id, notes="") for c in customers]
         for a in accounts:
             db.merge(a)
         db.commit()
+        logger.info("✓ Accounts inserted")
 
-        # Step 4: Insert KB articles
+        logger.info("Step 4: Inserting KB articles (this may take 30-60s)...")
         articles = [
             ("Password Reset Guide", "To reset your password, go to Settings > Security > Reset Password. A link will be emailed to you. Links expire in 24 hours.", "authentication"),
             ("Refund Policy", "Refunds are available within 30 days of purchase. To request a refund, provide your order ID. Refunds take 3-5 business days.", "billing"),
@@ -51,12 +57,15 @@ def seed_database():
         ]
 
         db.execute(text("DELETE FROM kb_articles"))
-        for title, body, category in articles:
+        for i, (title, body, category) in enumerate(articles):
+            logger.info(f"  Embedding article {i+1}/8: {title}")
             vec = embed(f"{title} {body}")
             article = KBArticle(title=title, body=body, category=category, embedding=vec)
             db.add(article)
         db.commit()
+        logger.info("✓ KB articles inserted")
 
+        logger.info("Database seed completed successfully!")
         return {"status": "success", "message": "Database seeded with sample data"}
     except Exception as e:
         db.rollback()
