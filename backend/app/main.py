@@ -1,0 +1,21 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.api import tickets, webhook, settings, metrics
+
+app = FastAPI(title="Support Resolution Agent")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(tickets.router, prefix="/tickets", tags=["tickets"])
+app.include_router(webhook.router, prefix="/webhook", tags=["webhook"])
+app.include_router(settings.router, prefix="/settings", tags=["settings"])
+app.include_router(metrics.router, prefix="/metrics", tags=["metrics"])
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
