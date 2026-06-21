@@ -22,17 +22,20 @@ def reciprocal_rank_fusion(
 def hybrid_search(query: str, db: Session, top_k: int = 5) -> list[dict]:
     query_vec = embed(query)
 
-    # Dense: pgvector cosine similarity
+    # Format vector as Postgres array literal: "[0.1, 0.2, ...]"
+    vec_str = "[" + ",".join(str(v) for v in query_vec) + "]"
+
+    # Dense: pgvector cosine similarity (cast array to vector)
     dense_rows = db.execute(
         text("""
             SELECT id::text, title, body, category,
-                   1 - (embedding <=> :vec::vector) AS score
+                   1 - (embedding <=> CAST(:vec AS vector)) AS score
             FROM kb_articles
             WHERE embedding IS NOT NULL
-            ORDER BY embedding <=> :vec::vector
+            ORDER BY embedding <=> CAST(:vec AS vector)
             LIMIT :k
         """),
-        {"vec": str(query_vec), "k": top_k * 2},
+        {"vec": vec_str, "k": top_k * 2},
     ).mappings().all()
     dense = [dict(r) for r in dense_rows]
 

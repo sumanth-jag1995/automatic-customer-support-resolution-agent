@@ -12,6 +12,7 @@ def seed():
     init_db()
     db = SessionLocal()
 
+    # Step 1: Insert customers FIRST and commit immediately
     customers = [
         Customer(id="cust_1", name="Alice Chen", email="alice@example.com", plan="pro", status="active"),
         Customer(id="cust_2", name="Bob Smith", email="bob@example.com", plan="free", status="active"),
@@ -19,7 +20,9 @@ def seed():
     ]
     for c in customers:
         db.merge(c)
+    db.commit()
 
+    # Step 2: Insert orders (depends on customers)
     orders = [
         Order(id="ord_1", customer_id="cust_1", product="Pro Plan", amount=99.0, status="completed"),
         Order(id="ord_2", customer_id="cust_2", product="Add-on Pack", amount=19.0, status="completed"),
@@ -27,11 +30,15 @@ def seed():
     ]
     for o in orders:
         db.merge(o)
+    db.commit()
 
+    # Step 3: Insert accounts (depends on customers)
     accounts = [Account(customer_id=c.id, notes="") for c in customers]
     for a in accounts:
         db.merge(a)
+    db.commit()
 
+    # Step 4: Insert KB articles
     articles = [
         ("Password Reset Guide", "To reset your password, go to Settings > Security > Reset Password. A link will be emailed to you. Links expire in 24 hours.", "authentication"),
         ("Refund Policy", "Refunds are available within 30 days of purchase. To request a refund, provide your order ID. Refunds take 3-5 business days.", "billing"),
@@ -48,11 +55,8 @@ def seed():
         vec = embed(f"{title} {body}")
         article = KBArticle(title=title, body=body, category=category, embedding=vec)
         db.add(article)
-
     db.commit()
 
-    db.execute(text("UPDATE kb_articles SET tsv = to_tsvector('english', title || ' ' || body)"))
-    db.commit()
     db.close()
     print("Seeded successfully.")
 
