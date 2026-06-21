@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, DateTime, Text, func
+from sqlalchemy import Column, String, Float, DateTime, Text, Integer, ForeignKey, func, Index
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from app.database import Base
@@ -14,15 +14,19 @@ class Customer(Base):
 class Order(Base):
     __tablename__ = "orders"
     id = Column(String, primary_key=True)
-    customer_id = Column(String, nullable=False)
+    customer_id = Column(String, ForeignKey("customers.id"), nullable=False)
     product = Column(String, nullable=False)
     amount = Column(Float, nullable=False)
     status = Column(String, default="completed")
     created_at = Column(DateTime, server_default=func.now())
 
+    __table_args__ = (
+        Index("idx_orders_customer_id", "customer_id"),
+    )
+
 class Account(Base):
     __tablename__ = "accounts"
-    customer_id = Column(String, primary_key=True)
-    password_reset_count = Column(String, default="0")
+    customer_id = Column(String, ForeignKey("customers.id"), primary_key=True)
+    password_reset_count = Column(Integer, default=0)
     last_reset_at = Column(DateTime)
     notes = Column(Text)

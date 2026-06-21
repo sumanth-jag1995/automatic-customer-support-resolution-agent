@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Index
+from sqlalchemy import Column, String, Text, Index, Computed
 from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
 from pgvector.sqlalchemy import Vector
 import uuid
@@ -10,9 +10,19 @@ class KBArticle(Base):
     title = Column(String, nullable=False)
     body = Column(Text, nullable=False)
     category = Column(String)
-    embedding = Column(Vector(384))   # all-MiniLM-L6-v2 dimension
-    tsv = Column(TSVECTOR)
+    embedding = Column(Vector(384))
+    tsv = Column(
+        TSVECTOR,
+        Computed("to_tsvector('english', coalesce(title,'') || ' ' || coalesce(body,''))", persisted=True)
+    )
 
     __table_args__ = (
         Index("kb_tsv_idx", "tsv", postgresql_using="gin"),
+        Index(
+            "kb_embedding_hnsw_idx",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
     )
