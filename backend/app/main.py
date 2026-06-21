@@ -1,8 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import tickets, webhook, settings, metrics
+from app.database import init_db
 
 app = FastAPI(title="Support Resolution Agent")
+
+@app.on_event("startup")
+def startup():
+    init_db()
 
 app.add_middleware(
     CORSMiddleware,
